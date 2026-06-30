@@ -1,6 +1,6 @@
 #include "collector.h"
 
-volatile sig_atomit_t running_flag = 1;
+volatile sig_atomic_t running_flag = 1;
 
 void sigproc(int sig) {
   static int called = 0;
@@ -16,9 +16,8 @@ void *get_in_addr(struct sockaddr *sa) {
 }
 
 int init_collector_socket(const char *port) {
-    int sockfd;
+    int sockfd, rv;
     struct addrinfo hints, *servinfo, *p;
-    
     memset(&hints, 0, sizeof hints);
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
@@ -35,13 +34,11 @@ int init_collector_socket(const char *port) {
             perror("socket");
             continue;
         }
-
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
             perror("bind");
             continue;
         }
-
         break;
     }
 
@@ -51,14 +48,12 @@ int init_collector_socket(const char *port) {
     }
     
     freeaddrinfo(servinfo);
-    
     return sockfd;
 }
 
 void *collector_worker_thread(void *args) {
-    
-    puts("Collector: listening...");
-    
+    puts("Collector: booting up...");
+
     int sockfd = *(int *)args;
     struct sockaddr_storage their_addr; 
     socklen_t addr_len;
@@ -74,26 +69,42 @@ void *collector_worker_thread(void *args) {
             perror("recvfrom");
             continue;
         }
-        
-        printf("Collector: got packet from %s\n", 
-            inet_ntop(their_addr.ss_family, 
-                get_in_addr((struct sockaddr *)&their_addr), s, sizeof s));
-        
-        /* Raw exported data parsing logic*/
+        /*Packet under-reading */
+        if (numbytes < NF5_HEADER_LENGTH) {
+            //dropped_packets++;
+            continue;
+        }
         struct NF5_header *header = (struct NF5_header *) buf;
-        u_int16_t version = ntohs(header->version);
-        u_int16_t count   = ntohs(header->count);
-        u_int32_t uptime  = ntohl(header->uptime); 
+        u_int16_t count = ntohs(header->count);
+        /*Packet over-reading */
+        if (NF5_HEADER_LENGTH + NF5_RECORD_LENGTH * count > (size_t)numbytes) {
+            //dropped_packets++; 
+            continue;
+        }
 
-        size_t offset = sizeof(struct NF5_header);
+        u_int32_t SysUptime    = ntohl(header->SysUptime); 
+        u_int32_t unix_secs    = ntohl(header->unix_secs);
+        u_int32_t unix_nsecs   = ntohl(header->unix_nsecs);
+        u_int64_t boot_time_ms = ((u_int64_t)unix_secs * 1000) - SysUptime;
+        struct NF5_record *records = (struct NF5_record *) (buf + NF5_HEADER_LENGTH);
         for (int i = 0; i < count; i++) {
-            /* Buffer over-reading handler */
-            if (offset + sizeof(struct NF5_record) > (size_t)numbytes) {
-                
-            }
+            struct NF5_record *rec = &records[i];
+            struct normalized_NF5_record_data nrdata;
+            nrdata.srcaddr = rec->srcaddr;
+            nrdata.dstaddr = rec->dstaddr;
+            nrdata.dPkts   = ntohl(rec->dPkts);
+            nrdata.dOctets = ntohl(rec->dOctets);
+            nrdata.srcport = ntohs(rec->srcport);
+            nrdata.dstport = ntohs(rec->dstport);
+            nrdata.prot    = rec->prot;
+            uint64_t start_time_ms = boot_time_ms + ntohl(rec->first);
+            uint64_t end_time_ms   = boot_time_ms + ntohl(rec->last);
+            nrdata.start_time = (uint32_t)(start_time_ms / 1000);
+            nrdata.end_time   = (uint32_t)(end_time_ms / 1000);
         }
     }
     
     close(sockfd);
+    puts("Collector: shutting down...");
     return NULL;
 }

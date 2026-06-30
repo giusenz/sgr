@@ -1,5 +1,0 @@
-Gestione buffer over-read
-
-Dati normalizzati 
-
-Buffer circolare di dati normalizzati
