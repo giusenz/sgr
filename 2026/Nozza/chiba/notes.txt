@@ -1,0 +1,11 @@
+ARCHITECTURE.
+
+MP :== Main process
+SF :== softflowd
+
+MP uses a main thread and an auxiliary thread. 
+The main thread is a UDP receiver, while the auxiliary one sends data to CH web server, 
+sends detection queries and sleeps for X seconds. 
+
+
+
