@@ -9,8 +9,8 @@ all: $(EXEC)
 $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
-main.o:      main.c collector.h
-collector.o: collector.c collector.h
+main.o:       
+collector.o: c
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

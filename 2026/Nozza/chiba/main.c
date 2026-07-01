@@ -3,16 +3,16 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "ring_buffer.h"
 #include "collector.h"
 
 #define SOFTFLOWD_PATH "/usr/local/sbin/softflowd"
 
-#define BUFFER_SIZE 2048
+volatile sig_atomic_t running_flag = 1;
 
-/* Wrappers for fork and execv */
 int xfork(void);
+void sigproc(int sig);
 void xexecve(const char *pathname, char *const argv[], char *const envp[]);
-
 void print_help(void);
 
 int main(int argc, char *argv[]) {
@@ -37,6 +37,15 @@ int xfork(void) {
         exit(EXIT_FAILURE);
     }
     return pid;
+}
+
+void sigproc(int sig) {
+  static int called = 0;
+
+  fprintf(stderr, "Leaving...\n");
+  if (called) return; else called = 1;
+
+  running_flag = 0;
 }
 
 void xexecve(const char *pathname, char *const argv[], char *const envp[]) {

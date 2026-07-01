@@ -14,13 +14,15 @@
 #include <netdb.h>
 #include <signal.h>
 
+#include "ring_buffer.h"
+
 #define PORT "9995"
 #define MAXBUFLEN 2048
 
 /* 
  * This is the Cisco Netflow(tm) version 5 packet format
  * Based on:
- * https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1007472
+ * https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1007472 
  */
 
 #define NF5_HEADER_LENGTH 24U
@@ -62,22 +64,10 @@ struct NF5_record {
     u_int16_t pad2;
 } __attribute__((packed));
 
-struct normalized_NF5_record_data {
-    u_int32_t start_time;
-    u_int32_t end_time;
-    u_int32_t srcaddr;
-    u_int32_t dstaddr;
-    u_int32_t dPkts;
-    u_int32_t dOctets;
-    u_int16_t srcport;
-    u_int16_t dstport;
-    u_int8_t  prot;
-};
-
 extern volatile sig_atomic_t running_flag;
-void sigproc(int sig);
 
-/* Given a sockaddr, this function returns its IPv4 socket address */
+/* Given a sockaddr (structure describing a generic socket address), 
+ * this function returns its IPv4 socket address */
 void *get_in_addr(struct sockaddr *sa);
 
 /* Given a port, this function listens on socket file descriptor, 
@@ -85,11 +75,13 @@ void *get_in_addr(struct sockaddr *sa);
  * On success, the opened socket file descriptor is returned. */
 int init_collector_socket(const char *port);
 
+struct collector_thread_data {
+    int sockfd;
+    rbuffer *buffer;
+} 
+
 /* This function implements the packets collection logic by processing NF5 packets 
  * and by producing them on a ring bounded buffer */
-// DEFINE RING BUFFER STRUCTURE 
-// DEFINE THREAD DATA (see SYNCHRONIZATION)
-// DROPPED UNDER READ PARAMETER (IF NECESSARY)
 void *collector_worker_thread(void *args); 
 
 #endif 

@@ -1,16 +1,5 @@
 #include "collector.h"
 
-volatile sig_atomic_t running_flag = 1;
-
-void sigproc(int sig) {
-  static int called = 0;
-
-  fprintf(stderr, "Leaving...\n");
-  if (called) return; else called = 1;
-
-  running_flag = 0;
-}
-
 void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in*)sa)->sin_addr);
 }
@@ -89,7 +78,7 @@ void *collector_worker_thread(void *args) {
         struct NF5_record *records = (struct NF5_record *) (buf + NF5_HEADER_LENGTH);
         for (int i = 0; i < count; i++) {
             struct NF5_record *rec = &records[i];
-            struct normalized_NF5_record_data nrdata;
+            rbuffer_data nrdata;
             nrdata.srcaddr = rec->srcaddr;
             nrdata.dstaddr = rec->dstaddr;
             nrdata.dPkts   = ntohl(rec->dPkts);
