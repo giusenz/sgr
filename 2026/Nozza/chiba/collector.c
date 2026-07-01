@@ -4,7 +4,7 @@ void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in*)sa)->sin_addr);
 }
 
-int init_collector_socket(const char *port) {
+int init_collector_socket() {
     int sockfd, rv;
     struct addrinfo hints, *servinfo, *p;
     memset(&hints, 0, sizeof hints);
@@ -14,12 +14,12 @@ int init_collector_socket(const char *port) {
 
     if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo) != 0)) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        return -1;
     }
 
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
+            p->ai_protocol)) == -1) {
             perror("socket");
             continue;
         }
@@ -33,14 +33,14 @@ int init_collector_socket(const char *port) {
 
     if (p == NULL) {
         perror("failed to bind socket");
-        return 1;
+        return -1;
     }
     
     freeaddrinfo(servinfo);
     return sockfd;
 }
 
-void *collector_worker_thread(void *args) {
+void *collector_thread(void *args) {
     puts("Collector: booting up...");
 
     int sockfd = *(int *)args;
@@ -90,6 +90,8 @@ void *collector_worker_thread(void *args) {
             uint64_t end_time_ms   = boot_time_ms + ntohl(rec->last);
             nrdata.start_time = (uint32_t)(start_time_ms / 1000);
             nrdata.end_time   = (uint32_t)(end_time_ms / 1000);
+
+            //BUFFER LOGIC HERE
         }
     }
     

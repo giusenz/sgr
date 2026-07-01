@@ -64,6 +64,11 @@ struct NF5_record {
     u_int16_t pad2;
 } __attribute__((packed));
 
+typedef collector_thread_data {
+    int sockfd;
+    rbuffer *buffer;
+} ct_data;
+
 extern volatile sig_atomic_t running_flag;
 
 /* Given a sockaddr (structure describing a generic socket address), 
@@ -73,15 +78,9 @@ void *get_in_addr(struct sockaddr *sa);
 /* Given a port, this function listens on socket file descriptor, 
  * establishes a new connection on it and performs the binding. 
  * On success, the opened socket file descriptor is returned. */
-int init_collector_socket(const char *port);
-
-struct collector_thread_data {
-    int sockfd;
-    rbuffer *buffer;
-} 
+int init_collector_socket();
 
 /* This function implements the packets collection logic by processing NF5 packets 
  * and by producing them on a ring bounded buffer */
-void *collector_worker_thread(void *args); 
-
+void *collector_thread(void *args); 
 #endif 

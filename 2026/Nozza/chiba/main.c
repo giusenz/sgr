@@ -25,6 +25,27 @@ int main(int argc, char *argv[]) {
         argv[0] = "softflowd";
         xexecve(SOFTFLOWD_PATH, argv, NULL);            
     } else {
+        int sockfd = init_collector_socket(PORT);
+        if (sockfd == -1) {
+            perror("failed to initialize collector socket");
+            exit(EXIT_FAILURE);
+        }
+        
+        rbuffer *rb = xmalloc(sizeof(rbuffer));
+        if (ring_buffer_init(rb) == -1) {
+            perror("failed to initialize bounded buffer");
+            exit(EXIT_FAILURE);
+        }
+        
+        struct collector_thread_data ctd;
+        ctd.sockfd = sockfd;
+        ctd.buffer = rb;
+        
+        pthread_t collector_thread;
+        if (pthread_create(&collector_thread, NULL, collector_thread, &ctd) != 0) {
+            perror("failed to create collector thread");
+            exit(EXIT_FAILURE);
+        }
     }
 
     return 0;

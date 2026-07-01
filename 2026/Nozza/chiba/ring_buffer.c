@@ -9,11 +9,11 @@ void *xmalloc(size_t size) {
     return ptr;
 }
 
-int ring_buffer_init(rbuffer *rb, size_t size){
+int ring_buffer_init(rbuffer *rb){
     rb->buffer = xmalloc(RING_BUFFER_SIZE * sizeof(rbuffer_data));
-    rb->size   = size;
+    rb->size   = RING_BUFFER_SIZE;
     rb->nelem  = 0;
-    if (pthread_mutex_init(&rb->lockm NULL) != 0) {
+    if (pthread_mutex_init(&rb->lock, NULL) != 0) {
         free(rb->buffer); return -1;
     }
 

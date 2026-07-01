@@ -10,7 +10,7 @@ $(EXEC): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
 
 main.o:       
-collector.o: c
+collector.o:
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
