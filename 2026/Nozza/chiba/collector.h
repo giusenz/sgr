@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -13,6 +14,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <signal.h>
+#include <poll.h>
+#include <fcntl.h>
 
 #include "ring_buffer.h"
 
@@ -64,7 +67,7 @@ struct NF5_record {
     u_int16_t pad2;
 } __attribute__((packed));
 
-typedef collector_thread_data {
+typedef struct collector_thread_data {
     int sockfd;
     rbuffer *buffer;
 } ct_data;
@@ -75,12 +78,22 @@ extern volatile sig_atomic_t running_flag;
  * this function returns its IPv4 socket address */
 void *get_in_addr(struct sockaddr *sa);
 
+/* Given a file descriptor, this function sets it to non-blocking mode. 
+ * 0 is return on success, -1 otherwise */
+int set_nonblocking_fd(int fd);
+
 /* Given a port, this function listens on socket file descriptor, 
  * establishes a new connection on it and performs the binding. 
  * On success, the opened socket file descriptor is returned. */
 int init_collector_socket();
 
+int deserialize_NF5_header(struct NF5_header *header, u_int8_t *buf);
+
+void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_data *rbd);
+
+void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms, rbuffer *rbuffer);
+
 /* This function implements the packets collection logic by processing NF5 packets 
  * and by producing them on a ring bounded buffer */
-void *collector_thread(void *args); 
+ void *collector_thread_routine(void *args); 
 #endif 

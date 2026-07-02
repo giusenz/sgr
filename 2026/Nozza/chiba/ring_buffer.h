@@ -2,6 +2,7 @@
 #define RING_BUFFER_H
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -40,6 +41,6 @@ int ring_buffer_init(rbuffer *rb);
 void ring_buffer_destroy(rbuffer *rb);
 
 void ring_buffer_put(rbuffer *rb, rbuffer_data rbd);
-rbuffer_data *ring_buffer_get(rbuffer *rb);
+rbuffer_data ring_buffer_get(rbuffer *rb);
 
 #endif

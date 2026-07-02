@@ -3,7 +3,7 @@
 void *xmalloc(size_t size) {
     void *ptr = malloc(size);
     if (ptr == NULL) {
-        fprintf(stderr, "malloc error: %d\n", errno);
+        fprintf(stderr, "malloc error: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     return ptr;
@@ -49,7 +49,7 @@ void ring_buffer_put(rbuffer *rb, rbuffer_data rbd) {
         pthread_cond_wait(&rb->not_full, &rb->lock);
     }
     rb->buffer[rb->tail] = rbd;
-    rb->tail = (rb->tail) & (rb->size - 1);
+    rb->tail = (rb->tail + 1) & (rb->size - 1);
     rb->nelem++;
     pthread_cond_signal(&rb->not_empty);
 
@@ -63,8 +63,8 @@ rbuffer_data ring_buffer_get(rbuffer *rb) {
     while (rb->nelem == 0) {
         pthread_cond_wait(&rb->not_empty, &rb->lock);
     } 
-    rb->buffer[rb->head] = rbd;
-    rb->head = (rb->head) & (rb->size - 1);
+    rbd = rb->buffer[rb->head];
+    rb->head = (rb->head + 1) & (rb->size - 1);
     rb->nelem--;
     pthread_cond_signal(&rb->not_full);
 

@@ -8,10 +8,11 @@
 
 #define SOFTFLOWD_PATH "/usr/local/sbin/softflowd"
 
+void sigproc(int sig);
+
 volatile sig_atomic_t running_flag = 1;
 
 int xfork(void);
-void sigproc(int sig);
 void xexecve(const char *pathname, char *const argv[], char *const envp[]);
 void print_help(void);
 
@@ -37,27 +38,18 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
         
-        struct collector_thread_data ctd;
+        ct_data ctd;
         ctd.sockfd = sockfd;
         ctd.buffer = rb;
         
         pthread_t collector_thread;
-        if (pthread_create(&collector_thread, NULL, collector_thread, &ctd) != 0) {
+        if (pthread_create(&collector_thread, NULL, collector_thread_routine, &ctd) != 0) {
             perror("failed to create collector thread");
             exit(EXIT_FAILURE);
         }
     }
 
     return 0;
-}
-
-int xfork(void) {
-    int pid = fork();
-    if (pid == -1) {
-        fprintf(stderr, "fork error: %d\n", errno);
-        exit(EXIT_FAILURE);
-    }
-    return pid;
 }
 
 void sigproc(int sig) {
@@ -69,9 +61,18 @@ void sigproc(int sig) {
   running_flag = 0;
 }
 
+int xfork(void) {
+    int pid = fork();
+    if (pid == -1) {
+        fprintf(stderr, "fork error: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    return pid;
+}
+
 void xexecve(const char *pathname, char *const argv[], char *const envp[]) {
     if (execve(pathname, argv, envp) == -1) {
-        fprintf(stderr, "execve error: %d\n", errno);
+        fprintf(stderr, "execve error: %s\n", strerror(errno));
     }   
 }
 
