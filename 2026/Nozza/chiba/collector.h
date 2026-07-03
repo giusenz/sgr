@@ -96,4 +96,5 @@ void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms,
 /* This function implements the packets collection logic by processing NF5 packets 
  * and by producing them on a ring bounded buffer */
  void *collector_thread_routine(void *args); 
+
 #endif 

@@ -90,14 +90,12 @@ void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms,
 }
 
 void *collector_thread_routine(void *args) {
-    puts("Collector: booting up...");
-
     ct_data *ctd = (ct_data *) args;
     struct sockaddr_storage their_addr; 
     socklen_t addr_len;
     uint8_t buf[MAXBUFLEN]; 
-    
     ssize_t numbytes;       
+    
     struct pollfd pfd;
     pfd.fd     = ctd->sockfd;
     pfd.events = POLLIN;
@@ -111,7 +109,6 @@ void *collector_thread_routine(void *args) {
             }
         }
         if (rtval == 0) continue;
-        
         if (pfd.revents & POLLIN) {
             addr_len = sizeof their_addr;
             if ((numbytes = recvfrom(ctd->sockfd, buf, MAXBUFLEN, 0,
@@ -145,6 +142,5 @@ void *collector_thread_routine(void *args) {
         }    
     }
     close(ctd->sockfd);
-    puts("Collector: shutting down...");
     return NULL;
 }
