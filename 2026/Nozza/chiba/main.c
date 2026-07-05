@@ -8,6 +8,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 
+#include "exporter.h"
 #include "ring_buffer.h"
 #include "collector.h"
 
@@ -27,8 +28,10 @@ int main(int argc, char *argv[]) {
         print_help();
         exit(EXIT_FAILURE);
     }
+    
     signal(SIGINT, sigproc);
     signal(SIGTERM, sigproc);
+    
     if (xfork() == 0) {
         argv[0] = "softflowd";
         xexecve(SOFTFLOWD_PATH, argv, NULL);            
@@ -48,6 +51,9 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
         
+        ebuffer *eb = xmalloc(sizeof(ebuffer));
+        export_buffer_init(eb);
+
         ct_data ctd;
         ctd.sockfd = sockfd;
         ctd.buffer = rb;
@@ -58,10 +64,18 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
         
+        /* EXPORT CONTIGUOUS BUFFER LIFETIME */
+        /* BATCH EXTRACTION */
+        /* SEND WITH LIBCURL */
+
         if (pthread_join(collector_thread, NULL) != 0) {
             perror("pthread_join failed");
         } 
+        
         ring_buffer_destroy(rb);
+
+        export_buffer_destroy(eb);
+
         wait(NULL);
     }
 

@@ -41,6 +41,6 @@ int ring_buffer_init(rbuffer *rb);
 void ring_buffer_destroy(rbuffer *rb);
 
 void ring_buffer_put(rbuffer *rb, rbuffer_data rbd);
-rbuffer_data ring_buffer_get(rbuffer *rb);
+/* rbuffer_data ring_buffer_get(rbuffer *rb); See exporter.h for bulk extraction logic */ 
 
 #endif

@@ -36,6 +36,7 @@ int ring_buffer_init(rbuffer *rb){
 }
 
 void ring_buffer_destroy(rbuffer *rb) {
+    free(rb->buffer);
     pthread_mutex_destroy(&rb->lock);
     pthread_cond_destroy(&rb->not_full);
     pthread_cond_destroy(&rb->not_empty);
@@ -56,6 +57,7 @@ void ring_buffer_put(rbuffer *rb, rbuffer_data rbd) {
     pthread_mutex_unlock(&rb->lock);
 }
 
+/* This function is never used 
 rbuffer_data ring_buffer_get(rbuffer *rb) {
     rbuffer_data rbd;
     pthread_mutex_lock(&rb->lock);
@@ -68,7 +70,7 @@ rbuffer_data ring_buffer_get(rbuffer *rb) {
     rb->nelem--;
     pthread_cond_signal(&rb->not_full);
 
-
     pthread_mutex_unlock(&rb->lock);
     return rbd;
 }
+*/
