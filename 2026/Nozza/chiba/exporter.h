@@ -3,6 +3,7 @@
 
 #include "ring_buffer.h"
 #include <signal.h>
+#include <stdint.h>
 #include <time.h>
 
 /* The linear export buffer 
@@ -17,7 +18,7 @@
  */
 #define EXPORT_BUFFER_SIZE 16384 
 
-#define EXPORT_MIN_TIME_MS 5000
+#define EXPORT_MIN_TIME_MS 5000U
 
 extern volatile sig_atomic_t running_flag;
 
@@ -27,8 +28,7 @@ typedef struct export_buffer {
     size_t nelem; 
 } ebuffer;
 
-/* Compute time difference in milliseconds */
-long delta_time(struct timeval *now, struct timeval *before);
+u_int64_t get_time_ms(void);
 
 void export_buffer_init(ebuffer *eb);
 void export_buffer_destroy(ebuffer *eb);

@@ -1,7 +1,11 @@
 #include "exporter.h"
 
-long delta_time(struct timeval *now, struct timeval *before) {
+u_int64_t get_time_ms(void) {
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
     
+    return 
+    (u_int64_t)tp.tv_sec * 1000 + (u_int64_t)tp.tv_nsec / 1000000;  
 }
 
 void export_buffer_init(ebuffer *eb) {
@@ -48,30 +52,36 @@ size_t batch_transfer(rbuffer *rb, ebuffer *eb) {
 }
 
 void export_routine(rbuffer *rb, ebuffer *eb) {
+    u_int64_t before_ms = get_time_ms();
+    u_int64_t now_ms    = get_time_ms();
     while (running_flag) {
-        int batch_ret, sent;
-        batch_ret = sent = 0;
-        size_t n = batch_transfer(rb, eb);
-        
-        if (n > 0) {
-            batch_ret = 1;
-            eb->nelem += n;
-        }
-        
+        now_ms    = get_time_ms();
+        int batch_ret = 0;
+        int sent      = 0;
+        if (batch_transfer(rb, eb) > 0) 
+            batch_ret = 1; 
+
         /* Volumetric trigger */
-        if (eb->nelem >= eb->size) {
+        if (!sent && (eb->nelem >= eb->size)) {
             //[BLOCKING HTTP TRANSACTION]
             eb->nelem = 0;
-            //update last send time
+            now_ms = get_time_ms();
             sent = 1;
         }
+
         /* Time trigger */
-        // delta-time >= MIN. => SEND AND ALL THE CONSEQUENCES 
-        //[BLOCKING HTTP TRANSACTION]
+        if (!sent && ((now_ms - before_ms) >= EXPORT_MIN_TIME_MS)) {
+            //[BLOCKING HTTP TRANSACTION]
+            eb->nelem = 0;
+            now_ms = get_time_ms();
+            sent = 1;
+        }
         
         /* Sleep management */
-        if (batch_ret == 0 && sent == 0) {
-            // CURR - LAST-SEND OPT
+        if (!sent && !batch_ret) {
+            //sleep(min-delta)
         }
+
+        if (sent) before_ms = now_ms;
     }
 }

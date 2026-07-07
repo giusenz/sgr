@@ -1,8 +1,11 @@
+Time trigger
 
-Invio HTTP con libcurl innescato da condizione(i) del doppio trigger (spaziale/temporale) 
+HTTP transaction
 
-Setup delle colonne di CH, tipi, priorita', (vedi altro)
+CH config
 
-Studia motore per analisi (funzioni ch) 
+CH stats 
 
-Alert generato dai log JSON da ??
+Stats reading
+
+Alert generation
