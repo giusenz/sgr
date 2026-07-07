@@ -1,7 +1,5 @@
 
-MEM COPY DA UN BUFFER ALL'ALTRO 
-
-Invio HTTP con libcurl innescato dalla prima condizione del doppio trigger (spaziale/temporale) 
+Invio HTTP con libcurl innescato da condizione(i) del doppio trigger (spaziale/temporale) 
 
 Setup delle colonne di CH, tipi, priorita', (vedi altro)
 

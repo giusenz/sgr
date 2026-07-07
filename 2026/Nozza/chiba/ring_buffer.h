@@ -8,7 +8,15 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define RING_BUFFER_SIZE 16384
+/* The ring buffer is dimensioned 
+ * exclusively to absorb processed NF5 records (see collector.c)
+ * while the exporter is performing a blocking HTTP transaction.
+ * 
+ * Thanks to double buffering, when a batch_transfer() is performed (exporter.c),
+ * the collector has a free half of the ring buffer where incoming data
+ * can be written without risking to overwrite unread data at the tail. 
+ * This prevents data loss due to buffer saturation */
+#define RING_BUFFER_SIZE 32768
 
 typedef struct ring_buffer_data {
     u_int32_t start_time;
@@ -23,16 +31,12 @@ typedef struct ring_buffer_data {
 } rbuffer_data;
 
 typedef struct ring_buffer {
+    pthread_mutex_t lock;
     struct ring_buffer_data *buffer;
     size_t size;
-    size_t nelem;
-    pthread_mutex_t lock;
-    
+    size_t nelem;    
     size_t head;
-    pthread_cond_t not_full;  
-
     size_t tail;
-    pthread_cond_t not_empty;
 } rbuffer;
 
 void *xmalloc(size_t size);
@@ -41,6 +45,5 @@ int ring_buffer_init(rbuffer *rb);
 void ring_buffer_destroy(rbuffer *rb);
 
 void ring_buffer_put(rbuffer *rb, rbuffer_data rbd);
-/* rbuffer_data ring_buffer_get(rbuffer *rb); See exporter.h for bulk extraction logic */ 
 
 #endif

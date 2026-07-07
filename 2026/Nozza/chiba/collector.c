@@ -134,6 +134,7 @@ void *collector_thread_routine(void *args) {
             if (NF5_HEADER_LENGTH + NF5_RECORD_LENGTH * count > (size_t)numbytes) {
                 continue;
             }  
+            
             u_int32_t SysUptime    = ntohl(header.SysUptime); 
             u_int32_t unix_secs    = ntohl(header.unix_secs);
             u_int64_t boot_time_ms = ((u_int64_t)unix_secs * 1000) - SysUptime;

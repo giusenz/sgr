@@ -63,17 +63,15 @@ int main(int argc, char *argv[]) {
             perror("failed to create collector thread");
             exit(EXIT_FAILURE);
         }
-        
-        /* EXPORT CONTIGUOUS BUFFER LIFETIME */
-        /* BATCH EXTRACTION */
-        /* SEND WITH LIBCURL */
+
+        export_routine(rb, eb);
 
         if (pthread_join(collector_thread, NULL) != 0) {
             perror("pthread_join failed");
         } 
         
         ring_buffer_destroy(rb);
-
+        
         export_buffer_destroy(eb);
 
         wait(NULL);
