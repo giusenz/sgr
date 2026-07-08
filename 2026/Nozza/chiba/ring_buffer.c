@@ -1,17 +1,14 @@
 #include "ring_buffer.h"
 
-void *xmalloc(size_t size) {
-    void *ptr = malloc(size);
-    if (ptr == NULL) {
-        fprintf(stderr, "malloc error: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    return ptr;
-}
-
 int ring_buffer_init(rbuffer *rb){
     rb->buffer = xmalloc(RING_BUFFER_SIZE * sizeof(rbuffer_data));
+    if (rb->buffer == NULL) {
+        fprintf(stderr, "insufficient memory for ring buffer initialization\n");
+        return -1;
+    }
+
     if (pthread_mutex_init(&rb->lock, NULL) != 0) {
+        fprintf(stderr, "failed to initialize ring buffer lock\n");
         free(rb->buffer); return -1;
     }
 

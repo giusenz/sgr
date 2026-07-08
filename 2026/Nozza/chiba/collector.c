@@ -22,7 +22,7 @@ int init_collector_socket() {
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags    = AI_PASSIVE;
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo) != 0)) {
+    if (((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0)) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return -1;
     }
@@ -39,13 +39,15 @@ int init_collector_socket() {
         }
         break;
     }
+    
+    freeaddrinfo(servinfo);
+    
     if (p == NULL) {
         perror("failed to bind socket");
         return -1;
     }    
-    freeaddrinfo(servinfo);
 
-    if (set_nonblocking_fd(sockfd) == -1) {
+    if (set_nonblocking_fd(sockfd) != 0) {
         perror("failed to set non-blocking socket");
         close(sockfd);
         return -1;
@@ -142,6 +144,5 @@ void *collector_thread_routine(void *args) {
             process_NF5_records(buf, count, boot_time_ms, ctd->buffer);
         }    
     }
-    close(ctd->sockfd);
     return NULL;
 }

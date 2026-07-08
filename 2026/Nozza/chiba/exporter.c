@@ -1,16 +1,32 @@
 #include "exporter.h"
 
+CURL *curl_for_ch_init(void) {
+    CURL *curl = curl_easy_init();
+    if (curl != NULL) {
+        /* destination endpoint config */
+        curl_easy_setopt(curl, CURLOPT_URL, CH_TARGET_URL);
+        /* 1 => post enabled for this handle */
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    }
+    return curl;
+}
+
 u_int64_t get_time_ms(void) {
     struct timespec tp;
     clock_gettime(CLOCK_MONOTONIC, &tp);
     
-    return 
-    (u_int64_t)tp.tv_sec * 1000 + (u_int64_t)tp.tv_nsec / 1000000;  
+    return /* (sec * 1e3) + (nsec / 1e6) */
+    (u_int64_t)tp.tv_sec * 1000 + (u_int64_t)tp.tv_nsec / 1000000;   
 }
 
-void export_buffer_init(ebuffer *eb) {
+int export_buffer_init(ebuffer *eb) {
     eb->buffer = xmalloc(EXPORT_BUFFER_SIZE * sizeof(rbuffer_data));
-    eb->size   = EXPORT_BUFFER_SIZE;
+    if (eb->buffer == NULL) {
+        fprintf(stderr, "failed with export buffer memory allocation\n");
+        return -1;
+    }
+    eb->size = EXPORT_BUFFER_SIZE;
+    return 0;
 }
 
 void export_buffer_destroy(ebuffer *eb) {
@@ -51,11 +67,19 @@ size_t batch_transfer(rbuffer *rb, ebuffer *eb) {
     return n;
 }
 
-void export_routine(rbuffer *rb, ebuffer *eb) {
-    u_int64_t before_ms = get_time_ms();
-    u_int64_t now_ms    = get_time_ms();
+int export_routine(rbuffer *rb, ebuffer *eb) {
+    CURL *curl = curl_for_ch_init(); 
+    
+    if (curl == NULL) {
+        fprintf(stderr, "failed with curl_easy_init()\n");
+        return -1;
+    }
+    
+    u_int64_t before, now;
+    before = now = get_time_ms();
     while (running_flag) {
-        now_ms    = get_time_ms();
+        now = get_time_ms();
+        
         int batch_ret = 0;
         int sent      = 0;
         if (batch_transfer(rb, eb) > 0) 
@@ -63,25 +87,39 @@ void export_routine(rbuffer *rb, ebuffer *eb) {
 
         /* Volumetric trigger */
         if (!sent && (eb->nelem >= eb->size)) {
-            //[BLOCKING HTTP TRANSACTION]
+            //heree libcurl
             eb->nelem = 0;
-            now_ms = get_time_ms();
+            now = get_time_ms();
             sent = 1;
         }
 
         /* Time trigger */
-        if (!sent && ((now_ms - before_ms) >= EXPORT_MIN_TIME_MS)) {
+        uint64_t delta = now - before;
+        if (!sent && ((delta) >= EXPORT_MIN_TIME_MS)) {
             //[BLOCKING HTTP TRANSACTION]
             eb->nelem = 0;
-            now_ms = get_time_ms();
+            now = get_time_ms();
             sent = 1;
         }
         
         /* Sleep management */
         if (!sent && !batch_ret) {
-            //sleep(min-delta)
+            time_t sec  = (time_t)(delta / 1000);
+            long nsec = (long)((delta % 1000) * 1000000);
+            struct timespec request = { .tv_sec = sec, .tv_nsec = nsec };
+            nanosleep(&request, NULL);
         }
 
-        if (sent) before_ms = now_ms;
+        if (sent) before = now;
     }
+    /* Flushing buffers */
+    while (batch_transfer(rb, eb) > 0) {
+        //[BLOCKING HTTP TRANSACTION]
+    }
+    if (eb->nelem > 0) {
+        //http transaction with the last nelem elements
+    }
+
+    curl_easy_cleanup(curl);
+    return 0;
 }

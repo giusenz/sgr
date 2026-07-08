@@ -1,6 +1,8 @@
 #ifndef RING_BUFFER_H
 #define RING_BUFFER_H
 
+#include "wrappers.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -38,8 +40,6 @@ typedef struct ring_buffer {
     size_t head;
     size_t tail;
 } rbuffer;
-
-void *xmalloc(size_t size);
 
 int ring_buffer_init(rbuffer *rb);
 void ring_buffer_destroy(rbuffer *rb);

@@ -1,11 +1,3 @@
-Time trigger
+goto structure
 
-HTTP transaction
-
-CH config
-
-CH stats 
-
-Stats reading
-
-Alert generation
+transaction
