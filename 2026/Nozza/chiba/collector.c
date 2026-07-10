@@ -7,10 +7,10 @@ void *get_in_addr(struct sockaddr *sa) {
 int set_nonblocking_fd(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags < 0) { 
-        perror("fcntl F_GETFL"); return -1;
+        fprintf(stderr, "fcntl F_GETFL\n"); return -1;
     }
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-        perror("fcntl F_SETFL"); return -1;
+        fprintf(stderr, "fcntl F_SETFL\n"); return -1;
     }
     return 0;
 }
@@ -29,7 +29,7 @@ int init_collector_socket() {
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
             p->ai_protocol)) == -1) {
-            perror("socket failed"); 
+            fprintf(stderr, "socket failed\n"); 
             continue;
         }
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
@@ -43,12 +43,12 @@ int init_collector_socket() {
     freeaddrinfo(servinfo);
     
     if (p == NULL) {
-        perror("failed to bind socket");
+        fprintf(stderr, "failed to bind socket\n");
         return -1;
     }    
 
     if (set_nonblocking_fd(sockfd) != 0) {
-        perror("failed to set non-blocking socket");
+        fprintf(stderr, "failed to set non-blocking socket\n");
         close(sockfd);
         return -1;
     }
@@ -58,7 +58,7 @@ int init_collector_socket() {
 
 int deserialize_NF5_header(struct NF5_header *header, u_int8_t *buf) {
     if (header == NULL || buf == NULL) {
-        perror("failed with NF5 header deserialization");
+        fprintf(stderr, "failed with NF5 header deserialization\n");
         return -1;
     }
     memcpy(header, buf, sizeof(struct NF5_header)); 
@@ -73,8 +73,10 @@ void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_da
     rbd->srcport = ntohs(rec->srcport);
     rbd->dstport = ntohs(rec->dstport);
     rbd->prot    = rec->prot;
+
     uint64_t start_time_ms = boot_time_ms + ntohl(rec->first);
     uint64_t end_time_ms   = boot_time_ms + ntohl(rec->last);
+    
     rbd->start_time = (uint32_t)(start_time_ms / 1000);
     rbd->end_time   = (uint32_t)(end_time_ms / 1000);
 }
@@ -85,6 +87,7 @@ void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms,
         struct NF5_record record;
         u_int8_t *curr_base_addr = rec_base_addr + (i * NF5_RECORD_LENGTH);
         memcpy(&record, curr_base_addr, sizeof(struct NF5_record));
+        
         rbuffer_data rbd;
         parse_NF5_record(&record, boot_time_ms, &rbd);
         ring_buffer_put(rbuffer, rbd);
@@ -117,7 +120,7 @@ void *collector_thread_routine(void *args) {
             (struct sockaddr *)&their_addr, &addr_len)) == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
                 if (running_flag == 0) break;
-                perror("recvfrom");
+                fprintf(stderr, "recvfrom\n");
                 continue;
             }
 

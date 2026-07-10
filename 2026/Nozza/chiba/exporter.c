@@ -1,16 +1,5 @@
 #include "exporter.h"
 
-CURL *curl_for_ch_init(void) {
-    CURL *curl = curl_easy_init();
-    if (curl != NULL) {
-        /* destination endpoint config */
-        curl_easy_setopt(curl, CURLOPT_URL, CH_TARGET_URL);
-        /* 1 => post enabled for this handle */
-        curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    }
-    return curl;
-}
-
 u_int64_t get_time_ms(void) {
     struct timespec tp;
     clock_gettime(CLOCK_MONOTONIC, &tp);
@@ -19,6 +8,42 @@ u_int64_t get_time_ms(void) {
     (u_int64_t)tp.tv_sec * 1000 + (u_int64_t)tp.tv_nsec / 1000000;   
 }
 
+CURL *curl_for_ch_init(void) {
+    CURL *curl = curl_easy_init();
+    if (curl != NULL) {
+        curl_easy_setopt(curl, CURLOPT_URL, CH_TARGET_URL);
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+    }
+    return curl;
+}
+
+/* Callback function for writing receiving data. 
+ * It maches the prototype shown here: 
+ * https://curl.se/libcurl/c/CURLOPT_WRITEFUNCTION.html 
+ */
+static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    return /* number of bytes actually taken care of */
+    (size * nmemb); 
+} 
+
+static void curl_for_ch_perform_failure(CURLcode res, size_t npkts) {
+    fprintf(stderr, "Network blocking transfer failed: %s\n", curl_easy_strerror(res));
+    fprintf(stderr, "%zu packets could not be sent to ClickHouse\n", npkts);
+}
+
+void curl_for_ch_perform(CURL *curl, ebuffer *eb) {
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, eb->buffer);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)((eb->nelem) * sizeof(rbuffer_data)));
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    
+    CURLcode res = curl_easy_perform(curl);
+    if (res != CURLE_OK) curl_for_ch_perform_failure(res, eb->nelem);
+    
+    return res;
+}
+ 
 int export_buffer_init(ebuffer *eb) {
     eb->buffer = xmalloc(EXPORT_BUFFER_SIZE * sizeof(rbuffer_data));
     if (eb->buffer == NULL) {
@@ -79,45 +104,41 @@ int export_routine(rbuffer *rb, ebuffer *eb) {
     before = now = get_time_ms();
     while (running_flag) {
         now = get_time_ms();
+        u_int64_t delta = now - before;
         
         int batch_ret = 0;
         int sent      = 0;
         if (batch_transfer(rb, eb) > 0) 
             batch_ret = 1; 
 
-        /* Volumetric trigger */
-        if (!sent && (eb->nelem >= eb->size)) {
-            //heree libcurl
-            eb->nelem = 0;
-            now = get_time_ms();
-            sent = 1;
-        }
+        /* Volumetric trigger || Time trigger */
+        if (((eb->nelem >= eb->size) || (delta >= EXPORT_MIN_TIME_MS))) {
 
-        /* Time trigger */
-        uint64_t delta = now - before;
-        if (!sent && ((delta) >= EXPORT_MIN_TIME_MS)) {
-            //[BLOCKING HTTP TRANSACTION]
-            eb->nelem = 0;
+            if (eb->nelem == 0) {
+                sent = 1;
+                curl_for_ch_perform(curl, eb);
+                eb->nelem = 0;
+            }
+            
             now = get_time_ms();
-            sent = 1;
+            before = now;
         }
         
         /* Sleep management */
         if (!sent && !batch_ret) {
-            time_t sec  = (time_t)(delta / 1000);
-            long nsec = (long)((delta % 1000) * 1000000);
-            struct timespec request = { .tv_sec = sec, .tv_nsec = nsec };
+            struct timespec request = { .tv_sec = 0, .tv_nsec = 10000000 /* 10 ms */ };
             nanosleep(&request, NULL);
         }
 
-        if (sent) before = now;
     }
     /* Flushing buffers */
     while (batch_transfer(rb, eb) > 0) {
-        //[BLOCKING HTTP TRANSACTION]
+        curl_for_ch_perform(curl, eb);
+        eb->nelem = 0;
     }
     if (eb->nelem > 0) {
-        //http transaction with the last nelem elements
+        curl_for_ch_perform(curl, eb);
+        eb->nelem = 0;
     }
 
     curl_easy_cleanup(curl);

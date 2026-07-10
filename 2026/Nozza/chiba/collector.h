@@ -32,6 +32,9 @@
 #define NF5_RECORD_LENGTH 48U
 #define NF5_MAX_RECORDS   30U
 
+/* The following NF5 structs are packed to ensure consistent layout across platforms.
+ * The packed type attribute specifies 
+ * that a type must have the smallest possible alignment. */
 struct NF5_header {
     u_int16_t version;
     u_int16_t count;
@@ -93,7 +96,7 @@ void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_da
 
 void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms, rbuffer *rbuffer);
 
-/* This function implements the packets collection logic by processing NF5 packets 
+/* This routine implements the packets collection logic by processing NF5 packets 
  * and by producing them on a ring bounded buffer */
  void *collector_thread_routine(void *args); 
 

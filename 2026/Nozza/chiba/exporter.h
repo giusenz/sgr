@@ -21,12 +21,12 @@
 #define EXPORT_MIN_TIME_MS 5000U
 
 #define CH_SERVER_HTTP_PORT 8123L
-#define CH_TARGET_URL "http://127.0.0.1:8123/?query=INSERT%20INTO%20table_name%20FORMAT%20RowBinary"
+#define CH_TARGET_URL "http://127.0.0.1:8123/?query=INSERT%20INTO%20raw_data_tab%20FORMAT%20RowBinary"
 
-/* curl wrappers for ch http interface */
+u_int64_t get_time_ms(void);
+
 CURL *curl_for_ch_init(void);
-
-extern volatile sig_atomic_t running_flag;
+void curl_for_ch_perform(CURL *curl, ebuffer *eb);
 
 typedef struct export_buffer {
     struct ring_buffer_data *buffer;
@@ -34,13 +34,12 @@ typedef struct export_buffer {
     size_t nelem; 
 } ebuffer;
 
-u_int64_t get_time_ms(void);
-
 int export_buffer_init(ebuffer *eb);
 void export_buffer_destroy(ebuffer *eb);
 
 size_t batch_transfer(rbuffer *rb, ebuffer *eb);
 
+extern volatile sig_atomic_t running_flag;
 int export_routine(rbuffer *rb, ebuffer *eb);
 
 #endif

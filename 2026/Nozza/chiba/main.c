@@ -105,6 +105,7 @@ int main(int argc, char *argv[]) {
         goto err_eb;
     } 
     
+    /* LIFO cleanup */
     export_buffer_destroy(eb);
     ring_buffer_destroy(rb);
     curl_global_cleanup();
@@ -115,6 +116,7 @@ int main(int argc, char *argv[]) {
 
     return (EXIT_SUCCESS);
 
+    /* LIFO cascade cleanup */
     err_eb:
         export_buffer_destroy(eb);
     err_rb:
