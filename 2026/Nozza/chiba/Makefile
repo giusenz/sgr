@@ -1,24 +1,31 @@
-CC     = gcc
-CFLAGS = -Wall -g -O3 -pthread
-LDLIBS = -lm -lrt -pthread -lcurl
-EXEC   = chiba
-OBJS   = main.o wrappers.o collector.o ring_buffer.o exporter.o 
+# Compiler and flags 
+CC 	    := gcc
+CFLAGS  := -Wall -Wextra -O2 -g -Iinclude
+TARGET  := bin/chiba
+# Link external libraries
+LDFLAGS := -lcurl -lpthread 
 
-all: $(EXEC)
+# Directories
+SRC_DIR := src
+OBJ_DIR := build
+BIN_DIR := bin
 
-$(EXEC): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDLIBS)
+# Find source files in src/ and object files in obj/
+SRCS    := $(wildcard $(SRC_DIR)/*.c)
+OBJS    := $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-main.o:        main.c exporter.h wrappers.h ring_buffer.h collector.h 
-wrappers.o:    wrappers.c wrappers.h
-collector.o:   collector.c collector.h ring_buffer.h 
-ring_buffer.o: ring_buffer.c ring_buffer.h wrappers.h
-exporter.o:    exporter.c exporter.h ring_buffer.h
+.PHONY: clean
 
-%.o: %.c
+all: $(TARGET)
+
+# Create directories before compilation
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-clean:
-	rm -f *.o $(EXEC)
+$(TARGET): $(OBJS)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS)
 
-.PHONY: all clean 
+clean:
+	rm -rf  $(OBJ_DIR) $(BIN_DIR)

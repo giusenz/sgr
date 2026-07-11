@@ -165,9 +165,11 @@ int drop_privileges(const char *username) {
 }
 
 void sigproc(int sig) {
-  static int called = 0;
-  if (called) return; else called = 1;
-  running_flag = 0;
+    (void)sig;
+
+    static int called = 0;
+    if (called) return; else called = 1;
+    running_flag = 0;
 }
 
 void print_help(void) {

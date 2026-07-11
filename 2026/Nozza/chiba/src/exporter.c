@@ -24,6 +24,9 @@ CURL *curl_for_ch_init(void) {
  * https://curl.se/libcurl/c/CURLOPT_WRITEFUNCTION.html 
  */
 static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    /* Intentionally unused parameters */
+    (void)ptr; (void)userdata;
+    
     return /* number of bytes actually taken care of */
     (size * nmemb); 
 } 
@@ -40,8 +43,6 @@ void curl_for_ch_perform(CURL *curl, ebuffer *eb) {
     
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK) curl_for_ch_perform_failure(res, eb->nelem);
-    
-    return res;
 }
  
 int export_buffer_init(ebuffer *eb) {

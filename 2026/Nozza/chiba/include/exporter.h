@@ -25,14 +25,14 @@
 
 u_int64_t get_time_ms(void);
 
-CURL *curl_for_ch_init(void);
-void curl_for_ch_perform(CURL *curl, ebuffer *eb);
-
 typedef struct export_buffer {
     struct ring_buffer_data *buffer;
     size_t size;
     size_t nelem; 
 } ebuffer;
+
+CURL *curl_for_ch_init(void);
+void curl_for_ch_perform(CURL *curl, ebuffer *eb);
 
 int export_buffer_init(ebuffer *eb);
 void export_buffer_destroy(ebuffer *eb);
