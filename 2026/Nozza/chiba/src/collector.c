@@ -66,8 +66,8 @@ int deserialize_NF5_header(struct NF5_header *header, u_int8_t *buf) {
 }
 
 void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_data *rbd) {
-    rbd->srcaddr = rec->srcaddr;
-    rbd->dstaddr = rec->dstaddr;
+    rbd->srcaddr = ntohl(rec->srcaddr);
+    rbd->dstaddr = ntohl(rec->dstaddr);
     rbd->dPkts   = ntohl(rec->dPkts);
     rbd->dOctets = ntohl(rec->dOctets);
     rbd->srcport = ntohs(rec->srcport);
@@ -84,11 +84,11 @@ void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_da
 void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms, rbuffer *rbuffer) {
     u_int8_t *rec_base_addr = buf + NF5_HEADER_LENGTH;
     for (int i = 0; i < count; i++) {
-        struct NF5_record record;
+        struct NF5_record record = {0};
         u_int8_t *curr_base_addr = rec_base_addr + (i * NF5_RECORD_LENGTH);
         memcpy(&record, curr_base_addr, sizeof(struct NF5_record));
         
-        rbuffer_data rbd;
+        rbuffer_data rbd = {0};
         parse_NF5_record(&record, boot_time_ms, &rbd);
         ring_buffer_put(rbuffer, rbd);
     }

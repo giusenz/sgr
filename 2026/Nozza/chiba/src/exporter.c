@@ -33,7 +33,8 @@ static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdat
 
 static void curl_for_ch_perform_failure(CURLcode res, size_t npkts) {
     fprintf(stderr, "Network blocking transfer failed: %s\n", curl_easy_strerror(res));
-    fprintf(stderr, "%zu packets could not be sent to ClickHouse\n", npkts);
+    if (npkts > 0)
+        fprintf(stderr, "%zu packets could not be sent to ClickHouse\n", npkts);
 }
 
 void curl_for_ch_perform(CURL *curl, ebuffer *eb) {
@@ -52,6 +53,7 @@ int export_buffer_init(ebuffer *eb) {
         return -1;
     }
     eb->size = EXPORT_BUFFER_SIZE;
+    eb->nelem = 0;
     return 0;
 }
 
@@ -113,9 +115,9 @@ int export_routine(rbuffer *rb, ebuffer *eb) {
             batch_ret = 1; 
 
         /* Volumetric trigger || Time trigger */
-        if (((eb->nelem >= eb->size) || (delta >= EXPORT_MIN_TIME_MS))) {
+        if (batch_ret && ((eb->nelem >= eb->size) || (delta >= EXPORT_MIN_TIME_MS))) {
 
-            if (eb->nelem == 0) {
+            if (eb->nelem > 0) {
                 sent = 1;
                 curl_for_ch_perform(curl, eb);
                 eb->nelem = 0;
@@ -123,6 +125,7 @@ int export_routine(rbuffer *rb, ebuffer *eb) {
             
             now = get_time_ms();
             before = now;
+            batch_ret = 0;
         }
         
         /* Sleep management */
