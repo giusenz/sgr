@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
@@ -46,7 +47,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (optind < argc) {
-        fprintf(stderr, "Input error: unexpected arguments detected.\n");
+        fprintf(stderr, "[ERROR] Unexpected arguments detected.\n");
         print_usage();
         if (device)    free(device);
         if (pcap_path) free(pcap_path);
@@ -54,13 +55,15 @@ int main(int argc, char *argv[]) {
     }
 
     if (device && pcap_path) {
-        fprintf(stderr, "Input error: -i and -r are mutually exclusive. Choose a single source.\n");
+        fprintf(stderr, "[ERROR] The flags -i and -r are mutually exclusive. Choose a single source.\n");
         print_usage();
+        free(device);
+        free(pcap_path);
         return (EXIT_FAILURE);
     }
 
     if (!device && !pcap_path) {
-        fprintf(stderr, "Input error: choose a source (-i or -r)\n");
+        fprintf(stderr, "[ERROR] Choose a source (-i or -r)\n");
         print_usage();
         return (EXIT_FAILURE);
     }
@@ -71,6 +74,8 @@ int main(int argc, char *argv[]) {
     int pid = xfork();
 
     if (pid == -1) {
+        if (device)    free(device);
+        if (pcap_path) free(pcap_path);
         return (EXIT_FAILURE);
     }
 
@@ -107,26 +112,47 @@ int main(int argc, char *argv[]) {
         }
 
         cargv[i] = NULL;
-    
+        
+        int fd = open("/dev/null", O_WRONLY);
+        if (fd == -1) {
+            perror("failed to open /dev/null");
+            _exit(EXIT_FAILURE);
+        }
+        if (dup2(fd, STDOUT_FILENO) == -1) {
+            perror("dup2 STDOUT error");
+            _exit(EXIT_FAILURE);
+        }
+        if (dup2(fd, STDERR_FILENO) == -1) {
+            perror("dup2 STDERR error");
+            _exit(EXIT_FAILURE);
+        }
+        close(fd);
+
         xexecvp("softflowd", cargv);
     }            
 
     if (device)    free(device); 
     if (pcap_path) free(pcap_path);
     
+    usleep(100000);
+    
     int status;
     /* Waiting is not blocked */
     if (waitpid(pid, &status, WNOHANG) > 0) {
         if (WIFEXITED(status) && WEXITSTATUS(status) == EXIT_FAILURE) {
-            fprintf(stderr, "Probe boot failed\n");
+            fprintf(stderr, "[ERROR] Probe boot failed\n");
             return (EXIT_FAILURE);
         }
     } 
+
+    puts("[INFO] Probe initialization successful. Child process softflowd started.");
 
     int sockfd = init_collector_socket(PORT);
     if (sockfd == -1) {
         fprintf(stderr, "failed to initialize collector socket\n");
         goto err_child;
+    } else {
+        puts("[INFO] Connection established with probe.");
     }
 
     drop_privileges("nobody");
@@ -166,10 +192,14 @@ int main(int argc, char *argv[]) {
     if (pthread_create(&collector_thread, NULL, collector_thread_routine, &ctd) != 0) {
         fprintf(stderr, "failed to create collector thread\n");
         goto err_rb;
+    } else {
+        puts("[INFO] NF5 streams collection started.");
     }
 
     if (export_routine(rb, eb) != 0) {
         running_flag = 0;
+    } else {
+        puts("[INFO] NF5 record exportation to ClickHouse started successfully.");
     }
 
     if (pthread_join(collector_thread, NULL) != 0) {
@@ -186,6 +216,7 @@ int main(int argc, char *argv[]) {
     kill(pid, SIGTERM);
     waitpid(pid, NULL, 0);
 
+    puts("[INFO] Shutting down");
     return (EXIT_SUCCESS);
 
     /* LIFO cascade cleanup */
@@ -201,6 +232,7 @@ int main(int argc, char *argv[]) {
         kill(pid, SIGTERM);
         waitpid(pid, NULL, 0);
     
+    fprintf(stderr, "[ERROR] Shutting down: see error above\n");
     return (EXIT_FAILURE);
 }
 
@@ -224,8 +256,6 @@ int drop_privileges(const char *username) {
         if(setgid(pw->pw_gid) != 0 || setuid(pw->pw_uid) != 0) {
             fprintf(stderr, "unable to drop privileges [%s]\n", strerror(errno));
             return -1;
-        } else {
-            fprintf(stderr, "user changed to %s\n", username);
         }
     } else {
         fprintf(stderr, "unable to locate user %s\n", username);
