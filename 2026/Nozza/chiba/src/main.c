@@ -13,18 +13,55 @@
 #include <pwd.h>
 #include <sys/stat.h>
 
-#define SOFTFLOWD_PATH "/usr/local/sbin/softflowd"
+#define SOFTFLOWD_TARGET_EXPORT "127.0.0.1:9995"
+#define NETFLOW_VERSION         "5"
 
 int drop_privileges(const char *username);
 
 void sigproc(int sig);
 volatile sig_atomic_t running_flag = 1;
 
-void print_help(void);
+void print_usage(void);
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        print_help();
+    char *device    = NULL;
+    char *pcap_path = NULL;
+    u_char c;
+    
+    while((c = getopt(argc, argv, "hi:r:")) != '?') {
+        if((c == 255) || (c == (u_char)-1)) break;
+        
+        switch(c) {
+            case 'h':
+                print_usage();
+                return (EXIT_SUCCESS);
+                break;
+            case 'i':
+                device = strdup(optarg);
+                break;
+            case 'r':
+                pcap_path = strdup(optarg);
+                break;
+        }
+    }
+
+    if (optind < argc) {
+        fprintf(stderr, "Input error: unexpected arguments detected.\n");
+        print_usage();
+        if (device)    free(device);
+        if (pcap_path) free(pcap_path);
+        return (EXIT_FAILURE);
+    }
+
+    if (device && pcap_path) {
+        fprintf(stderr, "Input error: -i and -r are mutually exclusive. Choose a single source.\n");
+        print_usage();
+        return (EXIT_FAILURE);
+    }
+
+    if (!device && !pcap_path) {
+        fprintf(stderr, "Input error: choose a source (-i or -r)\n");
+        print_usage();
         return (EXIT_FAILURE);
     }
     
@@ -32,21 +69,56 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, sigproc);
     
     int pid = xfork();
-    
+
     if (pid == -1) {
         return (EXIT_FAILURE);
     }
 
     if (pid == 0) {
-        argv[0] = "softflowd";
-        xexecve(SOFTFLOWD_PATH, argv, NULL);
+        char* cargv[20];
+        int i = 0;
+        cargv[i++] = "softflowd";
+        cargv[i++] = "-d";
+        cargv[i++] = "-n";
+        cargv[i++] = SOFTFLOWD_TARGET_EXPORT;
+        cargv[i++] = "-v";
+        cargv[i++] = NETFLOW_VERSION;
+
+        if (device) {
+            cargv[i++] = "-i";
+            cargv[i++] = device;
+            cargv[i++] = "-t";
+            cargv[i++] = "maxlife=60s";
+            cargv[i++] = "-t";
+            cargv[i++] = "udp=30s";
+            cargv[i++] = "-t";
+            cargv[i++] = "tcp=300s";
+        }
+
+        if (pcap_path) {
+            cargv[i++] = "-r";
+            cargv[i++] = pcap_path;
+            cargv[i++] = "-m";
+            cargv[i++] = "1";
+            cargv[i++] = "-t";
+            cargv[i++] = "maxlife=1s";
+            cargv[i++] = "-t";
+            cargv[i++] = "expint=1s";
+        }
+
+        cargv[i] = NULL;
+    
+        xexecvp("softflowd", cargv);
     }            
+
+    if (device)    free(device); 
+    if (pcap_path) free(pcap_path);
     
     int status;
     /* Waiting is not blocked */
     if (waitpid(pid, &status, WNOHANG) > 0) {
         if (WIFEXITED(status) && WEXITSTATUS(status) == EXIT_FAILURE) {
-            fprintf(stderr, "softflowd boot failed\n");
+            fprintf(stderr, "Probe boot failed\n");
             return (EXIT_FAILURE);
         }
     } 
@@ -172,9 +244,9 @@ void sigproc(int sig) {
     running_flag = 0;
 }
 
-void print_help(void) {
-    printf("Usage: ./chiba [OPTTIONS]\n");
-    printf("\nThis program acts as a wrapper for softflowd. All standard softflowd flags are supported.\n");
-    printf("For a complete list of supported flow export options, please run:\n");
-    printf("$ softflowd -h \n$ man softflowd\n");
+void print_usage(void) {
+    printf("Usage: chiba [-h] [-r <path>] [-i <device>]\n");
+    printf("-h               [Print help]\n");
+    printf("-r <path>        [Static PCAP file path]\n");
+    printf("-i <device>      [Live network interface name]\n");
 }

@@ -10,7 +10,7 @@ SRC_DIR := src
 OBJ_DIR := build
 BIN_DIR := bin
 
-# Find source files in src/ and object files in obj/
+# Find source files in src/ and object files in build/
 SRCS    := $(wildcard $(SRC_DIR)/*.c)
 OBJS    := $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
