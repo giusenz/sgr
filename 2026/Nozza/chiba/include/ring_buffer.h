@@ -34,7 +34,7 @@ typedef struct ring_buffer_data {
 
 typedef struct ring_buffer {
     pthread_mutex_t lock;
-    struct ring_buffer_data *buffer;
+    rbuffer_data *buffer;
     size_t size;
     size_t nelem;    
     size_t head;

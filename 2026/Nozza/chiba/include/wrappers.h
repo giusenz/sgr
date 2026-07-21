@@ -9,6 +9,6 @@
 
 void *xmalloc(size_t size);
 int xfork(void);
-void xexecve(const char *pathname, char *const argv[], char *const envp[]);
 void xexecvp(const char *file, char *const argv[]);
+
 #endif

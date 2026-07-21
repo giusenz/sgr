@@ -21,12 +21,17 @@
 #define EXPORT_MIN_TIME_MS 5000U
 
 #define CH_SERVER_HTTP_PORT 8123L
-#define CH_TARGET_URL "http://127.0.0.1:8123/?query=INSERT%20INTO%20raw_data_tab%20FORMAT%20RowBinary"
+
+#define CH_HOST              "http://127.0.0.1:8123"
+#define CH_TABLE             "network_flows"
+#define CH_FORMAT            "RowBinary"
+
+#define CH_TARGET_URL CH_HOST "/?query=INSERT%20INTO%20" CH_TABLE "%20FORMAT%20" CH_FORMAT
 
 u_int64_t get_time_ms(void);
 
 typedef struct export_buffer {
-    struct ring_buffer_data *buffer;
+    rbuffer_data *buffer;
     size_t size;
     size_t nelem; 
 } ebuffer;
