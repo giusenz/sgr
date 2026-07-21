@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     pthread_t collector_thread;
     if (pthread_create(&collector_thread, NULL, collector_thread_routine, &ctd) != 0) {
         fprintf(stderr, "failed to create collector thread\n");
-        goto err_rb;
+        goto err_eb;
     } else {
         puts("[INFO] NF5 streams collection started.");
     }

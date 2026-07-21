@@ -52,7 +52,7 @@ int export_buffer_init(ebuffer *eb) {
         fprintf(stderr, "failed with export buffer memory allocation\n");
         return -1;
     }
-    eb->size = EXPORT_BUFFER_SIZE;
+    eb->size  = EXPORT_BUFFER_SIZE;
     eb->nelem = 0;
     return 0;
 }

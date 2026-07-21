@@ -12,11 +12,10 @@ int ring_buffer_init(rbuffer *rb){
         free(rb->buffer); return -1;
     }
 
-    rb->size   = RING_BUFFER_SIZE;
-    rb->nelem  = 0;
-
-    rb->head = 0;
-    rb->tail = 0;
+    rb->size  = RING_BUFFER_SIZE;
+    rb->nelem = 0;
+    rb->head  = 0;
+    rb->tail  = 0;
 
     return 0;
 }

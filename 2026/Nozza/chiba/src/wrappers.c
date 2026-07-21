@@ -17,12 +17,6 @@ int xfork(void) {
 }
 
 /* Implemented safe child process termination */
-void xexecve(const char *pathname, char *const argv[], char *const envp[]) {
-    if (execve(pathname, argv, envp) == -1) {
-        fprintf(stderr, "execve error: %s\n", strerror(errno));
-        _exit(EXIT_FAILURE);
-    }   
-}
 void xexecvp(const char *file, char *const argv[]) {
     if (execvp(file, argv) == -1) {
         fprintf(stderr, "execvp error: %s\n", strerror(errno));
