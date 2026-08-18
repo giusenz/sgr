@@ -1,6 +1,5 @@
 #include "wrappers.h"
 #include "exporter.h"
-#include "ring_buffer.h"
 #include "collector.h"
 
 #include <stdio.h>
@@ -13,6 +12,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #define SOFTFLOWD_TARGET_EXPORT "127.0.0.1:9995"
 #define NETFLOW_VERSION         "5"
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
 
     puts("[INFO] Probe initialization successful. Child process softflowd started.");
 
-    int sockfd = init_collector_socket(PORT);
+    int sockfd = init_collector_socket();
     if (sockfd == -1) {
         fprintf(stderr, "failed to initialize collector socket\n");
         goto err_child;

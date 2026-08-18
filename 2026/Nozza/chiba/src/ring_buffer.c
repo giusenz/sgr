@@ -1,7 +1,7 @@
 #include "ring_buffer.h"
 
 int ring_buffer_init(rbuffer *rb){
-    rb->buffer = xmalloc(RING_BUFFER_SIZE * sizeof(rbuffer_data));
+    rb->buffer = xmalloc(RING_BUFFER_SIZE * sizeof(flow_data));
     if (rb->buffer == NULL) {
         fprintf(stderr, "insufficient memory for ring buffer initialization\n");
         return -1;
@@ -26,7 +26,7 @@ void ring_buffer_destroy(rbuffer *rb) {
     free(rb);
 }
 
-void ring_buffer_put(rbuffer *rb, rbuffer_data rbd) {
+void ring_buffer_put(rbuffer *rb, flow_data rbd) {
     pthread_mutex_lock(&rb->lock);
     
     rb->buffer[rb->tail] = rbd;

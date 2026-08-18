@@ -39,7 +39,7 @@ static void curl_for_ch_perform_failure(CURLcode res, size_t npkts) {
 
 void curl_for_ch_perform(CURL *curl, ebuffer *eb) {
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, eb->buffer);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)((eb->nelem) * sizeof(rbuffer_data)));
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)((eb->nelem) * sizeof(flow_data)));
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     
     CURLcode res = curl_easy_perform(curl);
@@ -47,7 +47,7 @@ void curl_for_ch_perform(CURL *curl, ebuffer *eb) {
 }
  
 int export_buffer_init(ebuffer *eb) {
-    eb->buffer = xmalloc(EXPORT_BUFFER_SIZE * sizeof(rbuffer_data));
+    eb->buffer = xmalloc(EXPORT_BUFFER_SIZE * sizeof(flow_data));
     if (eb->buffer == NULL) {
         fprintf(stderr, "failed with export buffer memory allocation\n");
         return -1;
@@ -79,7 +79,7 @@ size_t batch_transfer(rbuffer *rb, ebuffer *eb) {
      * [head, head + av_space] and [0, n - av_space]    
      */
     size_t av_space = rb->size - rb->head;
-    size_t rdata_sz = sizeof(rbuffer_data);
+    size_t rdata_sz = sizeof(flow_data);
     if (n <= av_space) {
         memcpy(&eb->buffer[eb->nelem], &rb->buffer[rb->head], (n * rdata_sz));
     } else {

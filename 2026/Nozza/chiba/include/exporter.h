@@ -2,6 +2,7 @@
 #define EXPORTER_H  
 
 #include "ring_buffer.h"
+#include "flow.h"
 
 #include <stdio.h>
 #include <signal.h>
@@ -20,8 +21,6 @@
 
 #define EXPORT_MIN_TIME_MS 5000U
 
-#define CH_SERVER_HTTP_PORT 8123L
-
 #define CH_HOST              "http://127.0.0.1:8123"
 #define CH_TABLE             "network_flows"
 #define CH_FORMAT            "RowBinary"
@@ -31,7 +30,7 @@
 u_int64_t get_time_ms(void);
 
 typedef struct export_buffer {
-    rbuffer_data *buffer;
+    flow_data *buffer;
     size_t size;
     size_t nelem; 
 } ebuffer;

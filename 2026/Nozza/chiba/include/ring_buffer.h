@@ -2,6 +2,7 @@
 #define RING_BUFFER_H
 
 #include "wrappers.h"
+#include "flow.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,21 +21,9 @@
  * This prevents data loss due to buffer saturation */
 #define RING_BUFFER_SIZE 32768
 
-typedef struct ring_buffer_data {
-    u_int32_t start_time;
-    u_int32_t end_time;
-    u_int32_t srcaddr;
-    u_int32_t dstaddr;
-    u_int32_t dPkts;
-    u_int32_t dOctets;
-    u_int16_t srcport;
-    u_int16_t dstport;
-    u_int8_t  prot;
-} rbuffer_data;
-
 typedef struct ring_buffer {
     pthread_mutex_t lock;
-    rbuffer_data *buffer;
+    flow_data *buffer;
     size_t size;
     size_t nelem;    
     size_t head;
@@ -44,6 +33,6 @@ typedef struct ring_buffer {
 int ring_buffer_init(rbuffer *rb);
 void ring_buffer_destroy(rbuffer *rb);
 
-void ring_buffer_put(rbuffer *rb, rbuffer_data rbd);
+void ring_buffer_put(rbuffer *rb, flow_data rbd);
 
 #endif

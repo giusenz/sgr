@@ -1,5 +1,20 @@
 #include "collector.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <poll.h>
+#include <fcntl.h>
+
+/* Socket lifecycle*/
+
 void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in*)sa)->sin_addr);
 }
@@ -56,7 +71,55 @@ int init_collector_socket() {
     return sockfd;
 }
 
-int deserialize_NF5_header(struct NF5_header *header, u_int8_t *buf) {
+/* 
+ * This is the Cisco Netflow(tm) version 5 packet format
+ * Based on:
+ * https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1007472 
+ */
+
+#define NF5_HEADER_LENGTH 24U
+#define NF5_RECORD_LENGTH 48U
+#define NF5_MAX_RECORDS   30U
+
+/* The following NF5 structs are packed to ensure consistent layout across platforms.
+ * The packed type attribute specifies 
+ * that a type must have the smallest possible alignment. */
+struct NF5_header {
+    u_int16_t version;
+    u_int16_t count;
+    u_int32_t SysUptime;
+    u_int32_t unix_secs;
+    u_int32_t unix_nsecs;
+    u_int32_t flow_sequence;
+    u_int8_t  engine_type;
+    u_int8_t  engine_id;
+    u_int16_t sampling_interval;  
+} __attribute__((packed)); 
+
+struct NF5_record {
+    u_int32_t srcaddr;
+    u_int32_t dstaddr;
+    u_int32_t nexthop;
+    u_int16_t input;
+    u_int16_t output;
+    u_int32_t dPkts;
+    u_int32_t dOctets;
+    u_int32_t first;
+    u_int32_t last;
+    u_int16_t srcport;
+    u_int16_t dstport;
+    u_int8_t  pad1;
+    u_int8_t  tcp_flags;
+    u_int8_t  prot;
+    u_int8_t  tos;
+    u_int16_t src_as;
+    u_int16_t dst_as;
+    u_int8_t  src_mask;
+    u_int8_t  dst_mask;
+    u_int16_t pad2;
+} __attribute__((packed));
+
+static int deserialize_NF5_header(struct NF5_header *header, u_int8_t *buf) {
     if (header == NULL || buf == NULL) {
         fprintf(stderr, "failed with NF5 header deserialization\n");
         return -1;
@@ -65,7 +128,7 @@ int deserialize_NF5_header(struct NF5_header *header, u_int8_t *buf) {
     return 0;
 }
 
-void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_data *rbd) {
+static void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, flow_data *rbd) {
     rbd->srcaddr = ntohl(rec->srcaddr);
     rbd->dstaddr = ntohl(rec->dstaddr);
     rbd->dPkts   = ntohl(rec->dPkts);
@@ -81,16 +144,16 @@ void parse_NF5_record(struct NF5_record *rec, u_int64_t boot_time_ms, rbuffer_da
     rbd->end_time   = (uint32_t)(end_time_ms / 1000);
 }
 
-void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms, rbuffer *rbuffer) {
+static void process_NF5_records(u_int8_t *buf, u_int16_t count, u_int64_t boot_time_ms, rbuffer *rb) {
     u_int8_t *rec_base_addr = buf + NF5_HEADER_LENGTH;
     for (int i = 0; i < count; i++) {
         struct NF5_record record = {0};
         u_int8_t *curr_base_addr = rec_base_addr + (i * NF5_RECORD_LENGTH);
         memcpy(&record, curr_base_addr, sizeof(struct NF5_record));
         
-        rbuffer_data rbd = {0};
+        flow_data rbd = {0};
         parse_NF5_record(&record, boot_time_ms, &rbd);
-        ring_buffer_put(rbuffer, rbd);
+        ring_buffer_put(rb, rbd);
     }
 }
 
