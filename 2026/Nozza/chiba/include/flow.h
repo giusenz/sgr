@@ -13,6 +13,6 @@ typedef struct flow_data {
     u_int16_t srcport;
     u_int16_t dstport;
     u_int8_t  prot;
-} flow_data;
+} __attribute__((packed)) flow_data;
 
 #endif

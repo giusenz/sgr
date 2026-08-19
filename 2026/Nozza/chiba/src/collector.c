@@ -167,8 +167,12 @@ void *collector_thread_routine(void *args) {
     struct pollfd pfd;
     pfd.fd     = ctd->sockfd;
     pfd.events = POLLIN;
-    while (running_flag) {
-        int rtval = poll(&pfd, 1, 1000);
+    while (1) {
+        /* The collector thread must drain the socket 
+         * completely before it is allowed to exit. */
+        int timeout = running_flag ? 1000 : 0;
+        
+        int rtval = poll(&pfd, 1, timeout);
         if (rtval < 0) {
             if (errno == EINTR) continue;
             else {
@@ -176,7 +180,11 @@ void *collector_thread_routine(void *args) {
                 break;
             }
         }
-        if (rtval == 0) continue;
+        if (rtval == 0) {
+            if (running_flag == 0) break;
+            continue;
+        }
+        //printf("[DEBUG] poll returned %d, revents: %d\n", rtval, pfd.revents);
         if (pfd.revents & POLLIN) {
             addr_len = sizeof their_addr;
             if ((numbytes = recvfrom(ctd->sockfd, buf, MAXBUFLEN, 0,

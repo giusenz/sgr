@@ -20,7 +20,9 @@
 int drop_privileges(const char *username);
 
 void sigproc(int sig);
-volatile sig_atomic_t running_flag = 1;
+void sigchld(int sig);
+volatile sig_atomic_t running_flag   = 1;
+volatile sig_atomic_t is_pcap_mode   = 0;
 
 void print_usage(void);
 
@@ -68,14 +70,28 @@ int main(int argc, char *argv[]) {
         return (EXIT_FAILURE);
     }
     
-    signal(SIGINT, sigproc);
+    is_pcap_mode = (pcap_path != NULL) ? 1 : 0;
+
+    signal(SIGINT,  sigproc);
     signal(SIGTERM, sigproc);
+    signal(SIGCHLD, sigchld);
     
+    int sockfd = init_collector_socket();
+    if (sockfd == -1) {
+        fprintf(stderr, "failed to initialize collector socket\n");
+        if (device)    free(device);
+        if (pcap_path) free(pcap_path);
+        return (EXIT_FAILURE);
+    } else {
+        puts("[INFO] Connection established with probe.");
+    }
+
     int pid = xfork();
 
     if (pid == -1) {
         if (device)    free(device);
         if (pcap_path) free(pcap_path);
+        close(sockfd);
         return (EXIT_FAILURE);
     }
 
@@ -127,6 +143,7 @@ int main(int argc, char *argv[]) {
             _exit(EXIT_FAILURE);
         }
         close(fd);
+        close(sockfd);
 
         xexecvp("softflowd", cargv);
     }            
@@ -141,36 +158,23 @@ int main(int argc, char *argv[]) {
     if (waitpid(pid, &status, WNOHANG) > 0) {
         if (WIFEXITED(status) && WEXITSTATUS(status) == EXIT_FAILURE) {
             fprintf(stderr, "[ERROR] Probe boot failed\n");
-            return (EXIT_FAILURE);
+            goto err_socket;
         }
     } 
 
     puts("[INFO] Probe initialization successful. Child process softflowd started.");
 
-    int sockfd = init_collector_socket();
-    if (sockfd == -1) {
-        fprintf(stderr, "failed to initialize collector socket\n");
-        goto err_child;
-    } else {
-        puts("[INFO] Connection established with probe.");
-    }
-
     drop_privileges("nobody");
-        
-    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) {   
-        fprintf(stderr, "failed with curl_global_init\n");
-        goto err_socket;
-    }
 
     rbuffer *rb = xmalloc(sizeof(rbuffer));
     if (rb == NULL) {
         fprintf(stderr, "failed to allocate memory for ring buffer wrapper\n");
-        goto err_curl;
+        goto err_child;
     }
     if (ring_buffer_init(rb) != 0) {
         fprintf(stderr, "failed to initialize ring buffer\n");
         free(rb);
-        goto err_curl;
+        goto err_child;
     }
         
     ebuffer *eb = xmalloc(sizeof(ebuffer));
@@ -184,6 +188,16 @@ int main(int argc, char *argv[]) {
         goto err_rb;
     }
 
+    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) {
+        fprintf(stderr, "failed with curl_global_init\n");
+        goto err_eb; 
+    }
+    CURL *curl = curl_for_ch_init();
+    if (curl == NULL) {
+        fprintf(stderr, "failed with curl_easy_init()\n");
+        goto err_curl_global;
+    }
+
     ct_data ctd;
     ctd.sockfd = sockfd;
     ctd.buffer = rb;
@@ -191,12 +205,12 @@ int main(int argc, char *argv[]) {
     pthread_t collector_thread;
     if (pthread_create(&collector_thread, NULL, collector_thread_routine, &ctd) != 0) {
         fprintf(stderr, "failed to create collector thread\n");
-        goto err_eb;
+        goto err_curl_easy;
     } else {
         puts("[INFO] NF5 streams collection started.");
     }
 
-    if (export_routine(rb, eb) != 0) {
+    if (export_routine(rb, eb, curl) != 0) {
         running_flag = 0;
     } else {
         puts("[INFO] NF5 record exportation to ClickHouse started successfully.");
@@ -204,33 +218,38 @@ int main(int argc, char *argv[]) {
 
     if (pthread_join(collector_thread, NULL) != 0) {
         fprintf(stderr, "pthread_join failed\n");
-        goto err_eb;
+        goto err_curl_easy;
     } 
     
+    export_flush(rb, eb, curl);
+
     /* LIFO cleanup */
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
     export_buffer_destroy(eb);
     ring_buffer_destroy(rb);
-    curl_global_cleanup();
-    close(sockfd);
     
     kill(pid, SIGTERM);
     waitpid(pid, NULL, 0);
+    close(sockfd);
 
     puts("[INFO] Shutting down");
     return (EXIT_SUCCESS);
 
     /* LIFO cascade cleanup */
+    err_curl_easy:
+        curl_easy_cleanup(curl);
+    err_curl_global:
+        curl_global_cleanup();
     err_eb:
         export_buffer_destroy(eb);
     err_rb:
         ring_buffer_destroy(rb);
-    err_curl:
-        curl_global_cleanup();
-    err_socket:
-        close(sockfd);
     err_child:
         kill(pid, SIGTERM);
         waitpid(pid, NULL, 0);
+    err_socket:
+        close(sockfd);
     
     fprintf(stderr, "[ERROR] Shutting down: see error above\n");
     return (EXIT_FAILURE);
@@ -272,6 +291,11 @@ void sigproc(int sig) {
     static int called = 0;
     if (called) return; else called = 1;
     running_flag = 0;
+}
+
+void sigchld(int sig) {
+    (void)sig;
+    if (is_pcap_mode) running_flag = 0;
 }
 
 void print_usage(void) {

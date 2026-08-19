@@ -22,10 +22,11 @@
 #define EXPORT_MIN_TIME_MS 5000U
 
 #define CH_HOST              "http://127.0.0.1:8123"
+#define CH_DB                "chiba"
 #define CH_TABLE             "network_flows"
 #define CH_FORMAT            "RowBinary"
 
-#define CH_TARGET_URL CH_HOST "/?query=INSERT%20INTO%20" CH_TABLE "%20FORMAT%20" CH_FORMAT
+#define CH_TARGET_URL CH_HOST "/?query=INSERT%20INTO%20" CH_DB "." CH_TABLE "%20FORMAT%20" CH_FORMAT
 
 u_int64_t get_time_ms(void);
 
@@ -44,7 +45,8 @@ void export_buffer_destroy(ebuffer *eb);
 size_t batch_transfer(rbuffer *rb, ebuffer *eb);
 
 extern volatile sig_atomic_t running_flag;
-int export_routine(rbuffer *rb, ebuffer *eb);
+int export_routine(rbuffer *rb, ebuffer *eb, CURL *curl);
+void export_flush(rbuffer *rb, ebuffer *eb, CURL *curl);
 
 #endif
 

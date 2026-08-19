@@ -15,6 +15,7 @@ CURL *curl_for_ch_init(void) {
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     }
     return curl;
 }
@@ -95,14 +96,7 @@ size_t batch_transfer(rbuffer *rb, ebuffer *eb) {
     return n;
 }
 
-int export_routine(rbuffer *rb, ebuffer *eb) {
-    CURL *curl = curl_for_ch_init(); 
-    
-    if (curl == NULL) {
-        fprintf(stderr, "failed with curl_easy_init()\n");
-        return -1;
-    }
-    
+int export_routine(rbuffer *rb, ebuffer *eb, CURL *curl) {        
     u_int64_t before, now;
     before = now = get_time_ms();
     while (running_flag) {
@@ -135,7 +129,11 @@ int export_routine(rbuffer *rb, ebuffer *eb) {
         }
 
     }
-    /* Flushing buffers */
+    
+    return 0;
+}
+
+void export_flush(rbuffer *rb, ebuffer *eb, CURL *curl) {
     while (batch_transfer(rb, eb) > 0) {
         curl_for_ch_perform(curl, eb);
         eb->nelem = 0;
@@ -144,7 +142,4 @@ int export_routine(rbuffer *rb, ebuffer *eb) {
         curl_for_ch_perform(curl, eb);
         eb->nelem = 0;
     }
-
-    curl_easy_cleanup(curl);
-    return 0;
 }
