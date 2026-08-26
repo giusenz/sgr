@@ -1,9 +1,9 @@
-CREATE TABLE IF NOT EXISTS chiba.network_flows
+CREATE TABLE IF NOT EXISTS chiba.ingest_flows
 (
     START_TIME UInt32,
     END_TIME   UInt32,
-    SRCADDR    UInt32,
-    DSTADDR    UInt32,
+    SRCADDR    IPv4,
+    DSTADDR    IPv4,
     DPKTS      UInt32,
     DOCTETS    UInt32,
     SRCPORT    UInt16,

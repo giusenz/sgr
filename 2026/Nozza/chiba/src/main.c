@@ -69,6 +69,12 @@ int main(int argc, char *argv[]) {
         print_usage();
         return (EXIT_FAILURE);
     }
+
+    if (device && geteuid() != 0) {
+        fprintf(stderr, "[ERROR] Capturing live traffic on a device requires root privileges. Please run with sudo.\n");
+        free(device);
+        return (EXIT_FAILURE);
+    }
     
     is_pcap_mode = (pcap_path != NULL) ? 1 : 0;
 
@@ -210,10 +216,10 @@ int main(int argc, char *argv[]) {
         puts("[INFO] NF5 streams collection started.");
     }
 
+    puts("[INFO] NF5 record exportation to ClickHouse started successfully.");
+
     if (export_routine(rb, eb, curl) != 0) {
         running_flag = 0;
-    } else {
-        puts("[INFO] NF5 record exportation to ClickHouse started successfully.");
     }
 
     if (pthread_join(collector_thread, NULL) != 0) {

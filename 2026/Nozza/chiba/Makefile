@@ -25,13 +25,17 @@ all: $(TARGET)
 db-init:
 	@for f in $(SQL_DIR)/*.sql; do \
 		echo "[db-init] Applying $$f..."; \
-		curl -s --fail --data-binary @$$f $(CH_URL) || exit 1; \
+		clickhouse-client -n --queries-file $$f || exit 1; \
 	done
 
 db-drop:
-	@echo "[db-drop] WARNING: this will destroy all data in the chiba database."
+	@echo "[db-drop] WARNING: This will permanently destroy the 'chiba' database and all telemetry data."
 	@read -p "Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ] || exit 1
-	@curl -s --fail --data-binary "DROP DATABASE IF EXISTS chiba;" $(CH_URL)
+	@clickhouse-client --query "DROP DATABASE IF EXISTS chiba;"
+	@echo "[db-drop] Database destroyed."
+
+ db-reset: db-drop db-init
+	@echo "[db-reset] Database has been completely reset and initialized."
 
 # Create directories before compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
