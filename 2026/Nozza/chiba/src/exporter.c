@@ -1,4 +1,5 @@
 #include "exporter.h"
+#include "config.h"
 
 u_int64_t get_time_ms(void) {
     struct timespec tp;
@@ -11,11 +12,10 @@ u_int64_t get_time_ms(void) {
 CURL *curl_for_ch_init(void) {
     CURL *curl = curl_easy_init();
     if (curl != NULL) {
-        curl_easy_setopt(curl, CURLOPT_URL, CH_TARGET_URL);
+        curl_easy_setopt(curl, CURLOPT_URL, global_config.ch_target_url);
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-        //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     }
     return curl;
 }
@@ -24,13 +24,31 @@ CURL *curl_for_ch_init(void) {
  * It maches the prototype shown here: 
  * https://curl.se/libcurl/c/CURLOPT_WRITEFUNCTION.html 
  */
+
+
+static char curl_err_buf[CURL_ERROR_SIZE];
+static char ch_resp_body[1024];
+static size_t ch_resp_len = 0;
+
 static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
-    /* Intentionally unused parameters */
-    (void)ptr; (void)userdata;
+    /* Intentionally unused userdata */
+    (void)userdata;
     
-    return /* number of bytes actually taken care of */
-    (size * nmemb); 
-} 
+    size_t total_size = size * nmemb;
+    size_t copy_size = total_size;
+    
+    /* Bufffer overflow prevention */
+    if (ch_resp_len + copy_size >= sizeof(ch_resp_body) - 1) {
+        copy_size = sizeof(ch_resp_body) - 1 - ch_resp_len;
+    }
+    
+    if (copy_size > 0) {
+        memcpy(ch_resp_body + ch_resp_len, ptr, copy_size);
+        ch_resp_len += copy_size;
+        ch_resp_body[ch_resp_len] = '\0';
+    }
+    return total_size;
+}
 
 static void curl_for_ch_perform_failure(CURLcode res, size_t npkts) {
     fprintf(stderr, "Network blocking transfer failed: %s\n", curl_easy_strerror(res));
@@ -39,12 +57,26 @@ static void curl_for_ch_perform_failure(CURLcode res, size_t npkts) {
 }
 
 void curl_for_ch_perform(CURL *curl, ebuffer *eb) {
+    ch_resp_len = 0; /* Reset buffer */
+    
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, eb->buffer);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)((eb->nelem) * sizeof(flow_data)));
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_err_buf);
     
     CURLcode res = curl_easy_perform(curl);
-    if (res != CURLE_OK) curl_for_ch_perform_failure(res, eb->nelem);
+    
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    
+    if (res != CURLE_OK || http_code >= 400) {
+        fprintf(stderr, "HTTP %ld - Curl Error: %s\n", http_code, 
+                res == CURLE_OK ? "None" : curl_err_buf);
+        if (http_code >= 400 && ch_resp_len > 0) {
+            fprintf(stderr, "ClickHouse Error: %s\n", ch_resp_body);
+        }
+        curl_for_ch_perform_failure(res, eb->nelem);
+    }
 }
  
 int export_buffer_init(ebuffer *eb) {

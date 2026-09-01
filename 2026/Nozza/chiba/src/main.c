@@ -1,6 +1,7 @@
 #include "wrappers.h"
 #include "exporter.h"
 #include "collector.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +16,7 @@
 #include <fcntl.h>
 
 #define SOFTFLOWD_TARGET_EXPORT "127.0.0.1:9995"
-#define NETFLOW_VERSION         "5"
+#define NETFLOW_VERSION         "9"
 
 int drop_privileges(const char *username);
 
@@ -27,6 +28,13 @@ volatile sig_atomic_t is_pcap_mode   = 0;
 void print_usage(void);
 
 int main(int argc, char *argv[]) {
+    if (load_config() == -1) {
+        fprintf(stderr, "[WARN] chiba.conf not found. \
+        Falling back to default configuration and environment variables.\n");
+    } else {
+        puts("[INFO] chiba.conf read correctly.");
+    }
+
     char *device    = NULL;
     char *pcap_path = NULL;
     u_char c;

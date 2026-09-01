@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS chiba.host_src_agg
 (
     TIME_BUCKET DateTime,
-    SRCADDR IPv4,
+    SRCADDR IPv6,
     
-    UNIQUE_DSTADDR AggregateFunction(uniq, IPv4),
+    UNIQUE_DSTADDR AggregateFunction(uniq, IPv6),
     
     EXACT_START AggregateFunction(min, UInt32),
     EXACT_END AggregateFunction(max, UInt32),

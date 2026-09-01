@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS chiba.host_dst_agg
 (
     TIME_BUCKET DateTime,
-    DSTADDR IPv4,
+    DSTADDR IPv6,
     
     -- Distribution indicator
-    UNIQUE_SRCADDR AggregateFunction(uniq, IPv4),
+    UNIQUE_SRCADDR AggregateFunction(uniq, IPv6),
     
     -- Time bounds
     EXACT_START AggregateFunction(min, UInt32),

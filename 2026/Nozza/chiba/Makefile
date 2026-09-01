@@ -3,7 +3,7 @@ CC 	    := gcc
 CFLAGS  := -Wall -Wextra -O2 -g -Iinclude
 TARGET  := bin/chiba
 # Link external libraries
-LDFLAGS := -lcurl -lpthread 
+LDFLAGS := -lcurl -lpthread
 
 # Directories
 SRC_DIR := src
@@ -14,13 +14,9 @@ BIN_DIR := bin
 SRCS    := $(wildcard $(SRC_DIR)/*.c)
 OBJS    := $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-# ClickHouse HTTP interface
-CH_URL  := http://localhost:8123
-SQL_DIR := sql
-
-.PHONY: clean db-init db-drop
-
 all: $(TARGET)
+
+SQL_DIR := sql
 
 db-init:
 	@for f in $(SQL_DIR)/*.sql; do \
@@ -34,7 +30,7 @@ db-drop:
 	@clickhouse-client --query "DROP DATABASE IF EXISTS chiba;"
 	@echo "[db-drop] Database destroyed."
 
- db-reset: db-drop db-init
+db-reset: db-drop db-init
 	@echo "[db-reset] Database has been completely reset and initialized."
 
 # Create directories before compilation
@@ -48,3 +44,5 @@ $(TARGET): $(OBJS)
 
 clean:
 	rm -rf  $(OBJ_DIR) $(BIN_DIR)
+
+.PHONY: clean db-init db-drop

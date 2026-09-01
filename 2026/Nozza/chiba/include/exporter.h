@@ -21,13 +21,6 @@
 
 #define EXPORT_MIN_TIME_MS 5000U
 
-#define CH_HOST              "http://127.0.0.1:8123"
-#define CH_DB                "chiba"
-#define CH_TABLE             "network_flows"
-#define CH_FORMAT            "RowBinary"
-
-#define CH_TARGET_URL CH_HOST "/?query=INSERT%20INTO%20" CH_DB "." CH_TABLE "%20FORMAT%20" CH_FORMAT
-
 u_int64_t get_time_ms(void);
 
 typedef struct export_buffer {

@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS chiba.service_agg
 (
     TIME_BUCKET DateTime,
 
-    UNIQUE_SRCADDR AggregateFunction(uniq, IPv4),
+    UNIQUE_SRCADDR AggregateFunction(uniq, IPv6),
 
     EXACT_START AggregateFunction(min, UInt32),
     EXACT_END AggregateFunction(max, UInt32),

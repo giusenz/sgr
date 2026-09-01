@@ -11,14 +11,12 @@
 #include <unistd.h>
 #include <errno.h>
 
-/* The ring buffer is dimensioned 
- * exclusively to absorb processed NF5 records (see collector.c)
- * while the exporter is performing a blocking HTTP transaction.
- * 
+ /*
  * Thanks to double buffering, when a batch_transfer() is performed (exporter.c),
  * the collector has a free half of the ring buffer where incoming data
  * can be written without risking to overwrite unread data at the tail. 
- * This prevents data loss due to buffer saturation */
+ * This prevents data loss due to buffer saturation 
+ */
 #define RING_BUFFER_SIZE 32768
 
 typedef struct ring_buffer {
