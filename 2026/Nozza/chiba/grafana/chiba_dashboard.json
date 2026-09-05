@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "adlf2mx",
-    "generation": 69,
+    "generation": 73,
     "creationTimestamp": "2026-08-26T13:13:37Z",
     "labels": {},
     "annotations": {}
@@ -581,8 +581,8 @@
         "kind": "Panel",
         "spec": {
           "id": 14,
-          "title": "Security Incidents",
-          "description": "Feed of active anomalous hosts, detected threat categories, observed metrics, and severity.",
+          "title": "Real-Time Incidents (1m)",
+          "description": "Detection of rapid DDoS floods, network and port scans, data exfiltration occurring within a minute.",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -696,6 +696,198 @@
                         "value": {
                           "type": "color-text"
                         }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "transparent": true
+        }
+      },
+      "panel-15": {
+        "kind": "Panel",
+        "spec": {
+          "id": 15,
+          "title": "Slow Scanners ",
+          "description": "Detection of slow port scanners within a 24-hour window.",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-clickhouse-datasource",
+                      "version": "v0",
+                      "spec": {
+                        "editorType": "sql",
+                        "format": 1,
+                        "meta": {
+                          "builderOptions": {
+                            "columns": [],
+                            "database": "",
+                            "limit": 1000,
+                            "mode": "list",
+                            "queryType": "table",
+                            "table": ""
+                          }
+                        },
+                        "pluginVersion": "4.20.0",
+                        "queryType": "table",
+                        "rawSql": "SELECT\n  SRCADDR AS \"Source Host\",\n  UNIQUE_DSTPORT AS \"Probed Ports (24h)\",\n  UNIQUE_DSTADDR AS \"Probed Targets (24h)\",\n  PORTS_PER_HOUR AS \"Rate (Ports/h)\",\n  ACTIVE_SPAN_MINUTES AS \"Duration (min)\",\n  TOTAL_DOCTETS AS \"Total Volume\",\n  toDateTime(EXACT_START) AS \"First Seen\",\n  toDateTime(EXACT_END) AS \"Last Seen\"\nFROM chiba.slow_scanners_view\nORDER BY \"Probed Ports (24h)\" DESC\nLIMIT 15;"
+                      },
+                      "labels": {
+                        "grafana.app/export-label": "grafana-clickhouse-datasource-1",
+                        "grafana.app/export-datasource-name": "grafana-clickhouse-datasource"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.2.0",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": true,
+                "showHeader": true,
+                "sortBy": []
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "green"
+                      },
+                      {
+                        "value": 80,
+                        "color": "red"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Probed Ports (24h)"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 166
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Total Volume"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 93
+                      },
+                      {
+                        "id": "unit",
+                        "value": "bytes"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Source Host"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 143
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Rate (Ports/h)"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 189
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Duration (min)"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 109
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "First Seen"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 78
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Probed Targets (24h)"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 178
                       }
                     ]
                   }
@@ -2009,6 +2201,32 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-14"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 8,
+                        "width": 24,
+                        "height": 9,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-15"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 17,
                         "width": 5,
                         "height": 7,
                         "element": {
@@ -2021,7 +2239,7 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 5,
-                        "y": 0,
+                        "y": 17,
                         "width": 6,
                         "height": 7,
                         "element": {
@@ -2034,7 +2252,7 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 11,
-                        "y": 0,
+                        "y": 17,
                         "width": 7,
                         "height": 7,
                         "element": {
@@ -2047,25 +2265,12 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 18,
-                        "y": 0,
+                        "y": 17,
                         "width": 6,
                         "height": 7,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-13"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 7,
-                        "width": 24,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-14"
                         }
                       }
                     }
@@ -2239,7 +2444,7 @@
     "tags": [],
     "timeSettings": {
       "timezone": "browser",
-      "from": "now-7d",
+      "from": "now-24h",
       "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [
