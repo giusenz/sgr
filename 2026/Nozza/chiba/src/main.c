@@ -221,10 +221,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "failed to create collector thread\n");
         goto err_curl_easy;
     } else {
-        puts("[INFO] NF5 streams collection started.");
+        puts("[INFO] Streams collection started.");
     }
 
-    puts("[INFO] NF5 record exportation to ClickHouse started successfully.");
+    puts("[INFO] Records exportation to ClickHouse started successfully.");
 
     if (export_routine(rb, eb, curl) != 0) {
         running_flag = 0;
@@ -313,8 +313,13 @@ void sigchld(int sig) {
 }
 
 void print_usage(void) {
-    printf("Usage: chiba [-h] [-r <path>] [-i <device>]\n");
-    printf("-h               [Print help]\n");
-    printf("-r <path>        [Static PCAP file path]\n");
-    printf("-i <device>      [Live network interface name]\n");
+    printf("Usage: chiba [-h] [-r <path>] [-i <device>]\n\n");
+    printf("Options:\n");
+    printf("  -h               Print help\n");
+    printf("  -r <path>        Static PCAP file path\n");
+    printf("  -i <device>      Live network interface name\n\n");
+    printf("Environment Variables for ClickHouse HTTP interface (override chiba.conf):\n");
+    printf("  CH_HOST          Host (default: 127.0.0.1)\n");
+    printf("  CH_DB            Database (default: chiba)\n");
+    printf("  CH_TABLE         Destination table (default: ingest_flows)\n");
 }

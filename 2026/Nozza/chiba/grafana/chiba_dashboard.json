@@ -3,7 +3,7 @@
   "kind": "Dashboard",
   "metadata": {
     "name": "adlf2mx",
-    "generation": 73,
+    "generation": 77,
     "creationTimestamp": "2026-08-26T13:13:37Z",
     "labels": {},
     "annotations": {}
@@ -637,8 +637,8 @@
                 "showHeader": true,
                 "sortBy": [
                   {
-                    "desc": true,
-                    "displayName": "Timestamp"
+                    "desc": false,
+                    "displayName": "Last Seen"
                   }
                 ]
               },
@@ -696,6 +696,75 @@
                         "value": {
                           "type": "color-text"
                         }
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 97
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Observed Metric"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 217
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Host IP"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 129
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Last Seen"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 166
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Entity Role"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 177
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "scope": "series",
+                      "options": "Anomaly Type"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 162
                       }
                     ]
                   }
@@ -805,7 +874,7 @@
                     "properties": [
                       {
                         "id": "custom.width",
-                        "value": 166
+                        "value": 148
                       }
                     ]
                   },
@@ -835,7 +904,7 @@
                     "properties": [
                       {
                         "id": "custom.width",
-                        "value": 143
+                        "value": 101
                       }
                     ]
                   },
@@ -848,7 +917,7 @@
                     "properties": [
                       {
                         "id": "custom.width",
-                        "value": 189
+                        "value": 117
                       }
                     ]
                   },
@@ -874,7 +943,7 @@
                     "properties": [
                       {
                         "id": "custom.width",
-                        "value": 78
+                        "value": 93
                       }
                     ]
                   },
@@ -2201,32 +2270,6 @@
                       "spec": {
                         "x": 0,
                         "y": 0,
-                        "width": 24,
-                        "height": 8,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-14"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 8,
-                        "width": 24,
-                        "height": 9,
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-15"
-                        }
-                      }
-                    },
-                    {
-                      "kind": "GridLayoutItem",
-                      "spec": {
-                        "x": 0,
-                        "y": 17,
                         "width": 5,
                         "height": 7,
                         "element": {
@@ -2239,7 +2282,7 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 5,
-                        "y": 17,
+                        "y": 0,
                         "width": 6,
                         "height": 7,
                         "element": {
@@ -2252,7 +2295,7 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 11,
-                        "y": 17,
+                        "y": 0,
                         "width": 7,
                         "height": 7,
                         "element": {
@@ -2265,12 +2308,38 @@
                       "kind": "GridLayoutItem",
                       "spec": {
                         "x": 18,
-                        "y": 17,
+                        "y": 0,
                         "width": 6,
                         "height": 7,
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-13"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 7,
+                        "width": 24,
+                        "height": 9,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-14"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 16,
+                        "width": 24,
+                        "height": 10,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-15"
                         }
                       }
                     }
@@ -2282,7 +2351,7 @@
           {
             "kind": "TabsLayoutTab",
             "spec": {
-              "title": "inbound Traffic",
+              "title": "Inbound Traffic",
               "layout": {
                 "kind": "GridLayout",
                 "spec": {
@@ -2444,9 +2513,9 @@
     "tags": [],
     "timeSettings": {
       "timezone": "browser",
-      "from": "now-24h",
+      "from": "now-7d",
       "to": "now",
-      "autoRefresh": "",
+      "autoRefresh": "auto",
       "autoRefreshIntervals": [
         "5s",
         "10s",
